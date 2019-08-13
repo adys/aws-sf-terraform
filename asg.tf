@@ -22,13 +22,8 @@ data "template_file" "user_data" {
   template = "${file("${path.module}/templates/user-data.yml.tpl")}"
 }
 
-locals {
-  asg_count = (var.name == "dev-kafka" ? 1 : length(var.aws_zones))
-  #subnets = 
-}
-
 resource "aws_autoscaling_group" "default" {
-  count                     = (var.name == "dev-kafka" ? 1 : length(var.aws_zones))
+  count                     = length(var.aws_zones)
   name                      = "${var.name}-${element(var.aws_zones, count.index)}"
   default_cooldown          = "1"
   wait_for_capacity_timeout = "0"
@@ -38,7 +33,7 @@ resource "aws_autoscaling_group" "default" {
   max_size                  = lookup(var.node_count, element(var.aws_zones, count.index))
   desired_capacity          = lookup(var.node_count, element(var.aws_zones, count.index))
   availability_zones        = [element(var.aws_zones, count.index)]
-  vpc_zone_identifier       = [(var.name == "dev-kafka" ? 1 : lookup(var.subnets, element(var.aws_zones, count.index)))]
+  vpc_zone_identifier       = [lookup(var.subnets, element(var.aws_zones, count.index))]
   launch_configuration      = aws_launch_configuration.default.id
 
   load_balancers = var.load_balancers
